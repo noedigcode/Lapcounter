@@ -71,9 +71,11 @@ void MainWindow::startRace()
 {
     mRaceStart = QDateTime::currentDateTime();
     mLapStart = mRaceStart;
+    mLastKmStart = mRaceStart;
     mLapCount = 0;
     mPauseMsecs = 0;
     mPauseMsecsLastLap = 0;
+    mPauseMsecsLastKm = 0;
 
     openLogFile();
 
@@ -90,13 +92,16 @@ void MainWindow::stopRace()
 void MainWindow::pauseRace(bool pause)
 {
     if (pause) {
+        // Pause
         mRaceState = STATE_PAUSED;
         mPauseStart = QDateTime::currentDateTime();
     } else {
+        // Unpause
         mRaceState = STATE_ACTIVE;
         qint64 ms = mPauseStart.msecsTo(QDateTime::currentDateTime());
         mPauseMsecsLastLap += ms;
         mPauseMsecs += ms;
+        mPauseMsecsLastKm += ms;
         ui->pushButton_lap->setFocus();
     }
 }
@@ -107,20 +112,49 @@ void MainWindow::tap()
 
     QDateTime now = QDateTime::currentDateTime();
     QTime laptime = getLapTime(now);
+    qint64 lapms = laptime.msecsSinceStartOfDay();
+    int lapsecs = lapms/1000;
+    qint64 racems = getRaceTime(now).msecsSinceStartOfDay();
+    qint64 racesecs = racems/1000;
     mPauseMsecsLastLap = 0;
 
     mLapCount++;
+    ui->label_lapCount->setText(QString::number(mLapCount));
 
     // Lap time
     ui->label_lapTime->setText(laptime.toString("mm:ss"));
 
     // Distance
-    float km = (50*mLapCount)/1000.0;
+    float km = (LAP_METRES*mLapCount)/1000.0;
     ui->label_distance->setText(QString("%1 km").arg(km));
 
-    // Statistics
-    ui->label_lapCount->setText(QString::number(mLapCount));
-    // todo
+    // Check new km done and calculate last min/km
+    if ( fmod(km, 1) < 0.01 ) {
+        // New km done
+        qint64 ms = mLastKmStart.msecsTo(now);
+        ms -= mPauseMsecsLastKm;
+        mPauseMsecsLastKm = 0;
+        mLastKmStart = now;
+        QTime kmtime = QTime::fromMSecsSinceStartOfDay(ms);
+        ui->label_lastMinPerKm->setText(kmtime.toString("mm:ss"));
+    }
+    // Average min/km
+    qint64 msperkm = racems/km;
+    QTime avekmtime = QTime::fromMSecsSinceStartOfDay(msperkm);
+    ui->label_aveMinPerKm->setText(avekmtime.toString("mm:ss"));
+
+    // Min/max/average lap times
+
+    if (mLapCount == 1) {
+        mMinLapSecs = lapsecs;
+        mMaxLapSecs = lapsecs;
+    } else {
+        mMinLapSecs = qMin(lapsecs, mMinLapSecs);
+        mMaxLapSecs = qMax(lapsecs, mMaxLapSecs);
+    }
+    int averageLapSecs = racesecs/mLapCount;
+    ui->label_minmaxlap->setText(QString("%1 / %2").arg(mMinLapSecs).arg(mMaxLapSecs));
+    ui->label_aveLapTime->setText(QString("%1").arg(averageLapSecs));
 
     // Log
     log(now, getRaceTime(now), laptime, mLapCount, km);
@@ -175,11 +209,6 @@ void MainWindow::on_pushButton_startPause_clicked()
         startRace();
         break;
     }
-}
-
-void MainWindow::on_pushButton_lap_clicked()
-{
-
 }
 
 void MainWindow::on_pushButton_stop_clicked()

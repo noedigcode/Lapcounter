@@ -10,6 +10,8 @@
 #include <QTime>
 #include <QTextStream>
 
+#include <math.h>
+
 namespace Ui {
 class MainWindow;
 }
@@ -37,14 +39,12 @@ public:
 
 private slots:
     void on_pushButton_startPause_clicked();
-
-    void on_pushButton_lap_clicked();
-
     void on_pushButton_stop_clicked();
-
     void on_pushButton_lap_pressed();
 
 private:
+    const int LAP_METRES = 50; // Length of one lap in metres
+
     Ui::MainWindow *ui;
 
     QBasicTimer guiUpdateTimer;
@@ -54,11 +54,17 @@ private:
     RaceState mRaceState = STATE_NOT_STARTED;
     QDateTime mRaceStart;
     QDateTime mLapStart;
+    QDateTime mLastKmStart;
     int mLapCount = 0;
     bool mNewLap = false;
     QDateTime mPauseStart;
     qint64 mPauseMsecs = 0;
     qint64 mPauseMsecsLastLap = 0;
+    qint64 mPauseMsecsLastKm = 0;
+
+    // Stats
+    int mMinLapSecs = 0;
+    int mMaxLapSecs = 0;
 
     void startRace();
     void stopRace();
