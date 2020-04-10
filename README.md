@@ -1,6 +1,6 @@
 Lapcounter
 ==========
-Counts laps
+Counts laps for running marathons in your back yard
 -----------
 
 ```
@@ -10,7 +10,7 @@ And if I pave my streets with good times
 Will the mountain keep on giving?
 And if all of our days are numbered
 Then why do I keep counting?
-- The Killers
+-- The Killers - Why Do I Keep Counting
 ```
 
 Lapcounter was born out of a need to keep track of laps and distance
